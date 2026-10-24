@@ -1,0 +1,4 @@
+#!/bin/sh
+# Finder entry point: the TUI needs a terminal, so hand it off to Terminal.app.
+DIR="$(cd "$(dirname "$0")/../Resources" && pwd)"
+exec open -a Terminal "$DIR/run.command"

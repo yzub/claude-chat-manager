@@ -22,12 +22,19 @@ public static class InteractiveUI
 				return;
 			}
 
+			var choices = projects
+				.Append(new ProjectInfo("Quit", string.Empty))
+				.ToList();
+
 			var project = AnsiConsole.Prompt(
 				new SelectionPrompt<ProjectInfo>()
 					.Title("Select a [green]project[/]:")
 					.PageSize(20)
 					.UseConverter(p => Markup.Escape(p.Name))
-					.AddChoices(projects));
+					.AddChoices(choices));
+
+			if (project.Path.Length == 0)
+				return;
 
 			new ConversationListScreen(project).Run();
 		}
@@ -93,7 +100,9 @@ public class ConversationListScreen
 			return _allConversations;
 
 		return _allConversations
-			.Where(c => c.FirstMessage.Contains(_filter, StringComparison.OrdinalIgnoreCase))
+			.Where(c => c.Title.Contains(_filter, StringComparison.OrdinalIgnoreCase)
+				|| c.FirstMessage.Contains(_filter, StringComparison.OrdinalIgnoreCase)
+				|| c.Id.Contains(_filter, StringComparison.OrdinalIgnoreCase))
 			.ToList();
 	}
 
@@ -140,6 +149,10 @@ public class ConversationListScreen
 			case ConsoleKey.Enter:
 				if (_selected.HasValue)
 					ShowConversationDetail(filtered[_selected.Value]);
+				break;
+			case ConsoleKey.R when key.Modifiers.HasFlag(ConsoleModifiers.Control):
+				if (_selected.HasValue)
+					TryRenameSelected(filtered);
 				break;
 			case ConsoleKey.Delete:
 				if (_selected.HasValue && TryDeleteSelected(filtered))
@@ -234,7 +247,7 @@ public class ConversationListScreen
 			var cursor = _filterFocused ? "_" : "";
 			AnsiConsole.MarkupLine($"[{filterStyle}]Filter: {Markup.Escape(_filter)}{cursor}[/]  [dim](Esc to clear)[/]");
 		}
-		AnsiConsole.MarkupLine("[dim]Up/Down: navigate | Enter: details | Del/Backspace: delete | Esc: back | Type to filter[/]\n");
+		AnsiConsole.MarkupLine("[dim]Up/Down: navigate | Enter: details | Ctrl+R: rename | Del/Backspace: delete | Esc: back | Type to filter[/]\n");
 
 		// Scroll the viewport to keep the selection visible
 		int headerLines = _filter.Length > 0 ? 5 : 4;
@@ -257,7 +270,7 @@ public class ConversationListScreen
 			var prefix = isSelected ? "> " : "  ";
 			var style = isSelected ? "bold white on blue" : "default";
 
-			var line = $"{conv.Date:yyyy-MM-dd HH:mm}  {conv.FirstMessage}";
+			var line = $"{conv.Date:yyyy-MM-dd HH:mm}  [{conv.ShortId}]  {conv.Title} — {conv.FirstMessage}";
 
 			// Truncate and pad to fill the row width
 			int maxWidth = Math.Max(10, Console.WindowWidth - 3);
@@ -277,12 +290,49 @@ public class ConversationListScreen
 		table.AddColumn("Property");
 		table.AddColumn("Value");
 		table.AddRow("Title", Markup.Escape(conv.Title));
+		table.AddRow("ID", Markup.Escape(conv.Id));
+		if (!string.IsNullOrEmpty(conv.ContinuedInSessionId))
+			table.AddRow("Continued in", Markup.Escape(conv.ContinuedInSessionId));
 		table.AddRow("Date", conv.Date.ToString("yyyy-MM-dd HH:mm"));
 		table.AddRow("First Message", Markup.Escape(conv.FirstMessage));
 		table.AddRow("File", Markup.Escape(conv.FilePath));
 		AnsiConsole.Write(table);
 		AnsiConsole.MarkupLine("\nPress any key to go back...");
 		Console.ReadKey(true);
+	}
+
+	private void TryRenameSelected(List<ConversationInfo> filtered)
+	{
+		if (!_selected.HasValue)
+			return;
+
+		var conv = filtered[_selected.Value];
+
+		AnsiConsole.WriteLine();
+		var newTitle = AnsiConsole.Prompt(
+			new TextPrompt<string>($"New title for [green]{Markup.Escape(conv.Title)}[/]:")
+				.DefaultValue(conv.Title)
+				.ShowDefaultValue());
+
+		newTitle = newTitle.Trim();
+		if (newTitle.Length == 0 || newTitle == conv.Title)
+			return;
+
+		try
+		{
+			ChatScanner.RenameConversation(conv, newTitle);
+			_allConversations = ChatScanner.GetConversations(_project.Path);
+
+			var current = GetFilteredConversations();
+			var index = current.FindIndex(c => c.FilePath == conv.FilePath);
+			_selected = index >= 0 ? index : (current.Count > 0 ? 0 : null);
+		}
+		catch (Exception ex)
+		{
+			AnsiConsole.MarkupLine($"[red]Rename failed: {Markup.Escape(ex.Message)}[/]");
+			AnsiConsole.MarkupLine("[dim]Press any key to continue...[/]");
+			Console.ReadKey(true);
+		}
 	}
 
 	private bool ConfirmDelete(ConversationInfo conv)

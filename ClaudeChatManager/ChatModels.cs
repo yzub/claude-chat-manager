@@ -20,6 +20,15 @@ public class JsonlMessage
 
 	[JsonPropertyName("slug")]
 	public string? Slug { get; set; }
+
+	[JsonPropertyName("aiTitle")]
+	public string? AiTitle { get; set; }
+
+	[JsonPropertyName("customTitle")]
+	public string? CustomTitle { get; set; }
+
+	[JsonPropertyName("continuedInSessionId")]
+	public string? ContinuedInSessionId { get; set; }
 }
 
 public class MessageContent
@@ -38,7 +47,19 @@ public record ConversationInfo(
 	string FilePath,
 	string Title,
 	DateTime Date,
-	string FirstMessage);
+	string FirstMessage)
+{
+	public string? ContinuedInSessionId { get; init; }
+
+	// the live session (continuation head); FilePath may point at an older link
+	public string SessionId { get; init; } = "";
+
+	public bool IsEmpty { get; init; }
+
+	public string Id => SessionId.Length > 0 ? SessionId : Path.GetFileNameWithoutExtension(FilePath);
+
+	public string ShortId => Id.Length > 8 ? Id[..8] : Id;
+}
 
 [JsonSerializable(typeof(JsonlMessage))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]

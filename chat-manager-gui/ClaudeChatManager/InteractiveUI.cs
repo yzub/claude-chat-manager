@@ -294,6 +294,7 @@ public class ConversationListScreen
 		if (!string.IsNullOrEmpty(conv.ContinuedInSessionId))
 			table.AddRow("Continued in", Markup.Escape(conv.ContinuedInSessionId));
 		table.AddRow("Date", conv.Date.ToString("yyyy-MM-dd HH:mm"));
+		table.AddRow("Messages", conv.MessageCount.ToString());
 		table.AddRow("First Message", Markup.Escape(conv.FirstMessage));
 		table.AddRow("File", Markup.Escape(conv.FilePath));
 		AnsiConsole.Write(table);

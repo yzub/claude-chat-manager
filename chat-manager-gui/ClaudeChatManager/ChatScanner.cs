@@ -16,6 +16,9 @@ public static class ChatScanner
 			return [];
 
 		return Directory.GetDirectories(ProjectsDir)
+			// only show projects that still have conversations; folders with just a
+			// memory/ dir (no .jsonl files) are hidden but left intact on disk
+			.Where(dir => Directory.EnumerateFiles(dir, "*.jsonl").Any())
 			.Select(dir =>
 			{
 				var folderName = Path.GetFileName(dir);
@@ -78,6 +81,7 @@ public static class ChatScanner
 				ContinuedInSessionId = root.ContinuedInSessionId,
 				SessionId = head.SessionId,
 				IsEmpty = first == null,
+				MessageCount = ordered.Sum(c => c.MessageCount),
 			});
 		}
 
@@ -135,6 +139,7 @@ public static class ChatScanner
 		string? customTitle = null;
 		string? continuedIn = null;
 		DateTime? timestamp = null;
+		int messageCount = 0;
 
 		foreach (var line in File.ReadLines(filePath))
 		{
@@ -151,6 +156,9 @@ public static class ChatScanner
 			}
 
 			if (msg == null) continue;
+
+			if (msg.Type is "user" or "assistant")
+				messageCount++;
 
 			// grab the timestamp from the first message
 			timestamp ??= ParseTimestamp(msg.Timestamp) ?? File.GetCreationTime(filePath);
@@ -198,6 +206,7 @@ public static class ChatScanner
 			ContinuedInSessionId = continuedIn,
 			SessionId = sessionId,
 			IsEmpty = isEmpty,
+			MessageCount = messageCount,
 		};
 	}
 

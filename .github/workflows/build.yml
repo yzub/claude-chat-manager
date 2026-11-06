@@ -26,18 +26,18 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Publish
-        run: dotnet publish ClaudeChatManager/ClaudeChatManager.csproj -c Release -r ${{ matrix.rid }} -o publish
+        run: dotnet publish chat-manager-gui/ClaudeChatManager/ClaudeChatManager.csproj -c Release -r ${{ matrix.rid }} -o chat-manager-gui/publish
 
       - name: Zip (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: Compress-Archive -Path publish/${{ matrix.artifact }} -DestinationPath publish/ClaudeChatManager-${{ matrix.rid }}.zip
+        run: Compress-Archive -Path chat-manager-gui/publish/${{ matrix.artifact }} -DestinationPath chat-manager-gui/publish/ClaudeChatManager-${{ matrix.rid }}.zip
 
       - name: Zip (macOS)
         if: runner.os == 'macOS'
-        run: cd publish && zip ClaudeChatManager-${{ matrix.rid }}.zip ${{ matrix.artifact }}
+        run: cd chat-manager-gui/publish && zip ClaudeChatManager-${{ matrix.rid }}.zip ${{ matrix.artifact }}
 
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
-          files: publish/ClaudeChatManager-${{ matrix.rid }}.zip
+          files: chat-manager-gui/publish/ClaudeChatManager-${{ matrix.rid }}.zip

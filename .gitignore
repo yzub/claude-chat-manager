@@ -3,6 +3,7 @@
 project.lock.json
 .DS_Store
 *.pyc
+__pycache__/
 nupkg/
 
 # Visual Studio Code
@@ -50,3 +51,5 @@ package.json
 
 # macOS debug symbols
 *.dSYM/
+
+references

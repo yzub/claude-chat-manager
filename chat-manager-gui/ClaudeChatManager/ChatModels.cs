@@ -56,6 +56,9 @@ public record ConversationInfo(
 
 	public bool IsEmpty { get; init; }
 
+	// total number of user/assistant messages, summed across the continuation chain
+	public int MessageCount { get; init; }
+
 	public string Id => SessionId.Length > 0 ? SessionId : Path.GetFileNameWithoutExtension(FilePath);
 
 	public string ShortId => Id.Length > 8 ? Id[..8] : Id;
